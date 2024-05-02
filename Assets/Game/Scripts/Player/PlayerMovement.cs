@@ -8,6 +8,10 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField]
     private InputManager _input;
     [SerializeField]
+    private CameraManager _cameraManager;
+    [SerializeField]
+    private Transform _cameraTransform;
+    [SerializeField]
     private Transform _groundDetector;
     [SerializeField]
     private Transform _climbDetector;
@@ -57,6 +61,7 @@ public class PlayerMovement : MonoBehaviour
         _rigidbody = GetComponent<Rigidbody>();
         _speed = _walkSpeed;
         _playerStance = PlayerStance.Stand;
+        HideAndLockCursor();
     }
 
     // Start is called before the first frame update
@@ -85,6 +90,12 @@ public class PlayerMovement : MonoBehaviour
         _input.OnCancelClimb -= CancelClimb;
     }
 
+    private void HideAndLockCursor()
+    {
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+    }
+
     private void Move(Vector2 axisDirection)
     {
         Vector3 movementDirection;
@@ -93,16 +104,37 @@ public class PlayerMovement : MonoBehaviour
         
         if (isPlayerStanding)
         {
-            if (axisDirection.magnitude >= 0.1)
+            switch (_cameraManager.CameraState)
             {
-                float rotationAngle = Mathf.Atan2(axisDirection.x, axisDirection.y) * Mathf.Rad2Deg;
-                float smoothAngle = Mathf.SmoothDampAngle(transform.eulerAngles.y, rotationAngle, ref _rotationSmoothVelocity, _rotationSmoothTime);
+                case CameraState.ThirdPerson:
+                    if (axisDirection.magnitude >= 0.1)
+                    {
+                        float rotationAngle = Mathf.Atan2(axisDirection.x, axisDirection.y) * Mathf.Rad2Deg + _cameraTransform.eulerAngles.y;
 
-                transform.rotation = Quaternion.Euler(0f, smoothAngle, 0f);
+                        float smoothAngle = Mathf.SmoothDampAngle(transform.eulerAngles.y, rotationAngle, ref _rotationSmoothVelocity, _rotationSmoothTime);
 
-                movementDirection = Quaternion.Euler(0f, rotationAngle, 0f) * Vector3.forward;
+                        transform.rotation = Quaternion.Euler(0f, smoothAngle, 0f);
 
-                _rigidbody.AddForce(_walkSpeed * Time.deltaTime * movementDirection);
+                        movementDirection = Quaternion.Euler(0f, rotationAngle, 0f) * Vector3.forward;
+
+                        _rigidbody.AddForce(_speed * Time.deltaTime * movementDirection);
+                    }
+                    break;
+                case CameraState.FirstPerson:
+                    transform.rotation = Quaternion.Euler(0f, _cameraTransform.eulerAngles.y, 0f);
+
+                    Vector3 verticalDirection = axisDirection.y * transform.forward;
+
+                    Vector3 horizontalDirection = axisDirection.x * transform.right;
+
+                    movementDirection = verticalDirection + horizontalDirection;
+
+                    _rigidbody.AddForce(_speed * Time.deltaTime * movementDirection);
+
+                    break;
+                default:
+                    break;
+
             }
         }
         else if (isPlayerClimbing)
@@ -115,7 +147,6 @@ public class PlayerMovement : MonoBehaviour
 
             _rigidbody.AddForce(_climbSpeed * Time.deltaTime * movementDirection);
         }
-
     }
 
     private void Sprint(bool isSprint)
@@ -165,6 +196,19 @@ public class PlayerMovement : MonoBehaviour
         {
             Vector3 offset = (transform.forward * _climbOffset.z) + (Vector3.up * _climbOffset.y);
 
+            _cameraManager.SetFPSClampedCamera(true, transform.rotation.eulerAngles);
+
+            _cameraManager.SetTPSFieldOfView(70);
+
+            // Mendapatkan titik terdekat antara Climbable dengan Player
+            Vector3 closestPointFromClimbable = hit.collider.bounds.ClosestPoint(transform.position);
+            // Menentukan arah Player dengan selisih antara titik terdekat dengan pemain
+            Vector3 hitForward = closestPointFromClimbable - transform.position;
+            // Membuat arah sumbu y menjadi 0, karena hanya perlu sumbu x dan z
+            hitForward.y = 0;
+            // Me-rotasi pemain berdasarkan arah pemain terhadap titik terdekat dari Climbable
+            transform.rotation = Quaternion.LookRotation(hitForward);
+
             transform.position = hit.point - offset;
 
             _playerStance = PlayerStance.Climb;
@@ -178,6 +222,8 @@ public class PlayerMovement : MonoBehaviour
         if (_playerStance == PlayerStance.Climb)
         {
             _playerStance = PlayerStance.Stand;
+            _cameraManager.SetFPSClampedCamera(false, transform.rotation.eulerAngles);
+            _cameraManager.SetTPSFieldOfView(40);
             _rigidbody.useGravity = true;
             transform.position -= transform.forward;
             _speed = _walkSpeed;
