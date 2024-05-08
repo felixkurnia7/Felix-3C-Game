@@ -15,6 +15,10 @@ public class PlayerMovement : MonoBehaviour
     private Transform _groundDetector;
     [SerializeField]
     private Transform _climbDetector;
+    [SerializeField]
+    private Transform _leftWallClimbDetector;
+    [SerializeField]
+    private Transform _rightWallClimbDetector;
 
     [Header("WALKING & SPRINTING")]
     [SerializeField]
@@ -139,13 +143,48 @@ public class PlayerMovement : MonoBehaviour
         }
         else if (isPlayerClimbing)
         {
-            Vector3 horizontal = axisDirection.x * transform.right;
+            // Melakukan raycast dari posisi sebelah kiri maupun sebelah kanan player pada objek "Climbable"
+            bool isLeftWallClimb = Physics.Raycast(_leftWallClimbDetector.position, transform.forward, _climbCheckDistance, _climbableLayer);
+            bool isRightWallClimb = Physics.Raycast(_rightWallClimbDetector.position, transform.forward, _climbCheckDistance, _climbableLayer);
 
-            Vector3 vertical = axisDirection.y * transform.up;
+            // Jika bagian sebelah kiri player tidak mendeteksi objek dengan layer "Climbable"
+            if (!isLeftWallClimb)
+            {
+                // Menentukan arah horizontal tidak akan bisa ke sebelah kiri atau bernilai negatif
+                // dan memaksa player bergerak sebelah kanan
+                Vector3 horizontal = transform.right;
 
-            movementDirection = horizontal + vertical;
+                Vector3 vertical = axisDirection.y * transform.up;
 
-            _rigidbody.AddForce(_climbSpeed * Time.deltaTime * movementDirection);
+                movementDirection = horizontal + vertical;
+
+                _rigidbody.AddForce(_climbSpeed * Time.deltaTime * movementDirection);
+            }
+            // Jika bagian sebelah kanan player tidak mendeteksi objek dengan layer "Climbable"
+            else if (!isRightWallClimb)
+            {
+                // Menentukan arah horizontal tidak akan bisa ke sebelah kanan atau bernilai positif
+                // dan memaksa player bergerak sebelah kiri dengan mengalikan dengan -1
+                Vector3 horizontal = transform.right * -1;
+
+                Vector3 vertical = axisDirection.y * transform.up;
+
+                movementDirection = horizontal + vertical;
+
+                _rigidbody.AddForce(_climbSpeed * Time.deltaTime * movementDirection);
+            }
+            // Jika kedua detector mendeteksi objek "Climbable"
+            // Maka player bergerak seperti biasa
+            else
+            {
+                Vector3 horizontal = axisDirection.x * transform.right;
+
+                Vector3 vertical = axisDirection.y * transform.up;
+
+                movementDirection = horizontal + vertical;
+
+                _rigidbody.AddForce(_climbSpeed * Time.deltaTime * movementDirection);
+            }
         }
     }
 
@@ -168,7 +207,7 @@ public class PlayerMovement : MonoBehaviour
         if (_isGrounded)
         {
             Vector3 jumpDirection = Vector3.up;
-            _rigidbody.AddForce(_jumpForce * Time.deltaTime * jumpDirection);
+            _rigidbody.AddForce(_jumpForce * jumpDirection);
         }
     }
 
