@@ -11,6 +11,10 @@ public class InputManager : MonoBehaviour
     public Action OnClimbInput;
     public Action OnCancelClimb;
     public Action OnChangePOV;
+    public Action OnCrouchInput;
+    public Action OnGlideInput;
+    public Action OnCancelGlide;
+    public Action OnPunchInput;
 
     // Start is called before the first frame update
     void Start()
@@ -73,7 +77,7 @@ public class InputManager : MonoBehaviour
 
         if (isPressCrouchInput)
         {
-            Debug.Log("Crouch");
+            OnCrouchInput?.Invoke();
         }
     }
 
@@ -103,7 +107,7 @@ public class InputManager : MonoBehaviour
 
         if (isPressGlideInput)
         {
-            Debug.Log("Glide");
+            OnGlideInput?.Invoke();
         }
     }
 
@@ -114,6 +118,7 @@ public class InputManager : MonoBehaviour
         if (isPressCancelInput)
         {
             OnCancelClimb?.Invoke();
+            OnCancelGlide?.Invoke();
         }
     }
 
@@ -123,7 +128,7 @@ public class InputManager : MonoBehaviour
 
         if (isPressPunchInput)
         {
-            Debug.Log("Punch");
+            OnPunchInput?.Invoke();
         }
     }
 
