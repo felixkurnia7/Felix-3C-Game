@@ -27,6 +27,8 @@ public class PlayerMovement : MonoBehaviour
     private Transform _leftHandHitDetector;
     [SerializeField]
     private Transform _rightHandHitDetector;
+    [SerializeField]
+    private PlayerAudioManager _playerAudioManager;
 
     [Header("WALKING & SPRINTING")]
     [SerializeField]
@@ -416,6 +418,7 @@ public class PlayerMovement : MonoBehaviour
             _playerStance = PlayerStance.Glide;
             _animator.SetBool("IsGliding", true);
             _cameraManager.SetFPSClampedCamera(true, transform.rotation.eulerAngles);
+            _playerAudioManager.PlayGlideSFX();
         }
     }
 
@@ -426,6 +429,7 @@ public class PlayerMovement : MonoBehaviour
             _playerStance = PlayerStance.Stand;
             _animator.SetBool("IsGliding", false);
             _cameraManager.SetFPSClampedCamera(false, transform.rotation.eulerAngles);
+            _playerAudioManager.StopGlideSFX();
         }
     }
 
